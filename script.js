@@ -4,11 +4,19 @@ const { Client, GatewayIntentBits } = require("discord.js");
 
 const token = process.env.CLIENT_TOKEN;
 
-const HELP = `
-- \`!help\` *List commands*
-- \`!ping\` *Pong*
-- \`!eval\` *Evaluates a JS script and write the returned value*
-- \`!eval\` *Evaluates a JS script and write the returned value*
+const HELP = "!help";
+const PING = "!ping";
+const ECHO = "!echo";
+const EVAL = "!eval";
+
+const COMMAND_LIST = `
+- \`${HELP}\` *List commands*
+- \`${PING}\` *Pong*
+- \`${ECHO} <your shit here>\` *Stupidly repeats your message*
+- \`${EVAL} <some js script>\` *Evaluates a JS script and write the returned value*
+  - *e.g.* \`${EVAL} Math.sqrt(2)\`
+  - *e.g.* \`${EVAL} [...Array(10)].reduce((a,_,i)=>a.concat(i>1?a[i-1]+a[i-2]:i),[]).join(', ')\`
+  - *e.g.* \`${EVAL} world.a = 4; world.a *= 3; world;\`
 `;
 
 const timestampToDate = (ts) => {
@@ -29,46 +37,73 @@ const client = new Client({
   partials: ["MESSAGE", "CHANNEL"],
 });
 
+// Object playground
+let world = {
+  name: "World",
+  description: "Add properties and store shit here",
+  logs: [],
+};
+
+// Log for each command
+const log = (command, content) =>
+  world.logs.push({ command, content, timestamp: new Date() });
+
 client.on("ready", () => {
   console.log(`Logged in as ${client.user.tag}!`);
 });
 
-client.on("messageCreate", (msg) => {
-  const content = msg.content;
+client.on("messageCreate", (msgObj) => {
+  const content = msgObj.content;
 
   console.log(
-    `${msg.author} ${timestampToDate(msg.createdTimestamp)} - ${content}`
+    `${msgObj.author} ${timestampToDate(msgObj.createdTimestamp)} - ${content}`
   );
 
-  if (msg.content.startsWith("!help")) {
-    msg.reply(HELP);
+  if (msgObj.content.startsWith(HELP)) {
+    log(HELP, content);
+    msgObj.reply(COMMAND_LIST);
   }
 
-  if (msg.content.startsWith("!ping")) {
-    msg.reply("Pong!");
+  if (msgObj.content.startsWith(PING)) {
+    log(PING, content);
+    msgObj.reply("Pong!");
   }
 
-  if (msg.content.startsWith("!eval ")) {
-    const script = msg.content.slice(6);
+  if (msgObj.content.startsWith(ECHO)) {
+    log(ECHO, content);
+    msgObj.reply(msgObj.content.slice(6));
+  }
+
+  if (msgObj.content.startsWith(EVAL)) {
+    log(EVAL, content);
+    const script = msgObj.content.slice(6);
     try {
       const interp = eval(script);
+
       // Token disclosure protection
       if (/[\w-]{24}\.[\w-]{6}\.[\w-]{27}/.test(interp)) {
-        msg.reply("Don't try to get the token u stinky whore");
-      } else {
-        switch (typeof interp) {
-          case "string":
-            msg.reply(interp);
-            break;
-          case "object":
-            msg.reply("```json\n" + JSON.stringify(interp, true, 3) + "```");
-            break;
-          default:
-            msg.reply(interp + "");
-        }
+        msgObj.reply("Don't try to get the token u stinky whore");
+        return;
+      }
+
+      // Token disclosure protection
+      if (script.includes("msgObj")) {
+        msgObj.reply("Don't try to get the token u stinky whore");
+        return;
+      }
+
+      switch (typeof interp) {
+        case "string":
+          msgObj.reply(interp);
+          break;
+        case "object":
+          msgObj.reply("```json\n" + JSON.stringify(interp, true, 3) + "```");
+          break;
+        default:
+          msgObj.reply(interp + "");
       }
     } catch (e) {
-      msg.reply("Error while evaluating code: " + e);
+      msgObj.reply("Error while evaluating code: " + e);
     }
   }
 });
