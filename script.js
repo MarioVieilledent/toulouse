@@ -92,15 +92,31 @@ client.on("messageCreate", (msgObj) => {
         return;
       }
 
+      let rep;
+
       switch (typeof interp) {
         case "string":
-          msgObj.reply(interp);
+          if (interp.length > 1999) {
+            msg.reply(interp.slice(0, 1999));
+          } else {
+            msg.reply(interp);
+          }
           break;
         case "object":
-          msgObj.reply("```json\n" + JSON.stringify(interp, true, 3) + "```");
+          rep = "```json\n" + JSON.stringify(interp, true, 3) + "```";
+          if (rep.length > 1999) {
+            msg.reply(rep.slice(0, 1999));
+          } else {
+            msg.reply(rep);
+          }
           break;
         default:
-          msgObj.reply(interp + "");
+          rep = interp + "";
+          if (rep.length > 1999) {
+            msg.reply(rep.slice(0, 1999));
+          } else {
+            msg.reply(rep);
+          }
       }
     } catch (e) {
       msgObj.reply("Error while evaluating code: " + e);
